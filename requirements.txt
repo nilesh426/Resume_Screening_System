@@ -4,3 +4,4 @@ spacy>=3.5
 pypdf>=3.0
 python-docx>=1.1
 pytest>=7.0  # test runner for tests/ (run: python -m pytest -q)
+gunicorn
