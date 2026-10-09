@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% set active_page = 'home' %}
+
+{% block title %}ResumeIQ · Find the Right Talent Faster{% endblock %}
+{% block page_title %}Overview{% endblock %}
+{% block page_sub %}Compare resumes against job requirements using natural language processing.{% endblock %}
+
+{% block content %}
+
+<!-- ============ HERO ============ -->
+<section class="riq-hero reveal">
+  <div class="riq-hero-copy">
+    <span class="riq-eyebrow">NLP Recruitment Dashboard</span>
+    <h2>Find the Right Talent Faster</h2>
+    <p>Compare resumes against job requirements using natural language processing — TF-IDF weighting with cosine similarity, ranked in seconds.</p>
+    <div class="riq-hero-actions">
+      <a href="#screen" class="riq-btn riq-btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+        Start Screening
+      </a>
+      <a href="#how" class="riq-btn riq-btn-ghost">How it works</a>
+    </div>
+    <div class="riq-hero-meta">
+      <span>PDF · DOCX</span>
+      <span>TF-IDF + Cosine</span>
+      <span>100% Local</span>
+    </div>
+  </div>
+  <div class="riq-hero-art" aria-hidden="true">
+    <div class="riq-hero-card">
+      <div class="riq-hero-doc">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+        candidate_resume.pdf
+      </div>
+      <div class="riq-hero-tags">
+        <span>python</span><span>flask</span><span>sql</span><span>rest api</span><span>pandas</span><span>git</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STATS (latest screening, or empty state) ============ -->
+{% set has_stats = summary and summary.processed > 0 %}
+<section class="riq-stats" aria-label="Screening statistics">
+  <div class="riq-stat reveal">
+    <span class="riq-stat-ic riq-ic-blue" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+    </span>
+    <div><small>Resumes Uploaded</small><strong>{{ summary.total if has_stats else '—' }}</strong><span>{{ 'In the latest screening' if has_stats else 'Awaiting first screening' }}</span></div>
+  </div>
+  <div class="riq-stat reveal">
+    <span class="riq-stat-ic riq-ic-teal" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+    </span>
+    <div><small>Resumes Processed</small><strong>{{ summary.processed if has_stats else '—' }}</strong><span>{{ 'Successfully ranked' if has_stats else 'Run a screening to see results' }}</span></div>
+  </div>
+  <div class="riq-stat reveal">
+    <span class="riq-stat-ic riq-ic-navy" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.5 13 17 22l-5-3-5 3 1.5-9"/></svg>
+    </span>
+    <div><small>Highest Match Score</small><strong>{{ '%.2f'|format(summary.top_score) + '%' if has_stats else '—' }}</strong><span>{{ 'Top candidate score' if has_stats else 'Top candidate appears here' }}</span></div>
+  </div>
+</section>
+
+{% if not spacy_ok %}
+<div class="riq-alert riq-alert-warn reveal" role="status">
+  <span class="riq-alert-ic" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+  </span>
+  <span>spaCy model <code>en_core_web_sm</code> not found — the app will use a built-in fallback tokenizer. For better lemmatization run <code>python -m spacy download en_core_web_sm</code>.</span>
+</div>
+{% endif %}
+
+<!-- ============ SCREENING WORKFLOW ============ -->
+<form id="screenForm" action="{{ url_for('screen') }}" method="post" enctype="multipart/form-data" novalidate>
+  <section class="riq-grid" id="screen" aria-label="Resume screening workflow">
+
+    <!-- Upload panel -->
+    <div class="riq-panel reveal">
+      <div class="riq-panel-head">
+        <span class="riq-step">1</span>
+        <div>
+          <h3>Upload Resumes</h3>
+          <p>PDF or DOCX · up to 20 files · 10 MB each</p>
+        </div>
+      </div>
+
+      <div class="riq-drop" id="dropZone">
+        <input type="file" id="resumes" name="resumes" accept=".pdf,.docx" multiple required aria-label="Choose resume files (PDF or DOCX, multiple allowed)">
+        <span class="riq-drop-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
+        </span>
+        <p><strong>Drag &amp; drop resumes here</strong></p>
+        <p class="riq-muted">or click anywhere to browse — files can be added in multiple batches</p>
+        <span class="riq-btn riq-btn-secondary riq-browse">Browse Files</span>
+        <small class="riq-muted">Files are processed in memory and never saved.</small>
+      </div>
+
+      <div class="riq-file-summary" id="fileSummary" hidden>
+        <strong id="fileCount">0 files ready</strong>
+        <span id="fileSize"></span>
+      </div>
+      <ul class="riq-files" id="fileList" aria-live="polite"></ul>
+      <div class="riq-empty-files" id="fileEmpty">
+        <p>No resumes selected yet. Choose PDF or DOCX files to begin.</p>
+      </div>
+      <p class="riq-field-error" id="fileError" hidden>Please select at least one PDF or DOCX resume.</p>
+    </div>
+
+    <!-- Job description panel -->
+    <div class="riq-panel reveal">
+      <div class="riq-panel-head">
+        <span class="riq-step">2</span>
+        <div>
+          <h3>Job Description</h3>
+          <p>Paste the full posting — skills, stack &amp; qualifications</p>
+        </div>
+      </div>
+      <label class="riq-label" for="job_description">Role requirements</label>
+      <textarea id="job_description" name="job_description" rows="13" required
+        placeholder="Example:&#10;&#10;We are hiring a Python Developer with experience in Flask, REST APIs and SQL. Familiarity with pandas, scikit-learn and NLP is a plus. The role involves building web applications, writing clean documented code and collaborating with the team."></textarea>
+      <div class="riq-textarea-foot">
+        <span><strong id="charCount">0</strong> characters</span>
+        <span class="riq-muted">Aim for 100+ characters for reliable scores</span>
+      </div>
+      <p class="riq-field-error" id="jdError" hidden>Please paste a job description before screening.</p>
+    </div>
+  </section>
+
+  <!-- Action bar -->
+  <div class="riq-actions reveal">
+    <button type="submit" class="riq-btn riq-btn-primary riq-btn-lg" id="screenBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <span id="screenBtnLabel">Screen Resumes</span>
+    </button>
+    <a href="{{ url_for('clear') }}" class="riq-btn riq-btn-ghost">Clear</a>
+    <span class="riq-loading" id="loading" hidden>
+      <span class="riq-spinner" aria-hidden="true"></span>Analyzing resumes… please wait.
+    </span>
+  </div>
+</form>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="riq-panel reveal" id="how" aria-label="How it works">
+  <div class="riq-panel-head">
+    <div>
+      <h3>How it works</h3>
+      <p>Traditional NLP pipeline — transparent and explainable</p>
+    </div>
+  </div>
+  <ol class="riq-steps">
+    <li><strong>Extract</strong><span>Text is pulled from each PDF and DOCX in memory.</span></li>
+    <li><strong>Normalize</strong><span>Lowercasing, tokenization, stop-word removal and lemmatization.</span></li>
+    <li><strong>Compare</strong><span>TF-IDF vectors for the JD and all resumes; cosine similarity is computed.</span></li>
+    <li><strong>Rank</strong><span>Similarity (0–1) becomes a match % and candidates are ordered highest first.</span></li>
+  </ol>
+  <p class="riq-note">Scores measure <strong>textual similarity</strong> — word overlap between a resume and the posting — not probability of hiring success.</p>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var input = document.getElementById('resumes');
+    var zone = document.getElementById('dropZone');
+    var list = document.getElementById('fileList');
+    var empty = document.getElementById('fileEmpty');
+    var summary = document.getElementById('fileSummary');
+    var countEl = document.getElementById('fileCount');
+    var sizeEl = document.getElementById('fileSize');
+    var fileError = document.getElementById('fileError');
+    var jd = document.getElementById('job_description');
+    var jdError = document.getElementById('jdError');
+    var charCount = document.getElementById('charCount');
+    var form = document.getElementById('screenForm');
+    var btn = document.getElementById('screenBtn');
+    var btnLabel = document.getElementById('screenBtnLabel');
+    var loading = document.getElementById('loading');
+    var MAX_FILES = 20;
+    var files = []; // {file: File, ok: bool}
+
+    function fmtSize(b) {
+      if (b < 1024) return b + ' B';
+      if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+      return (b / 1048576).toFixed(2) + ' MB';
+    }
+    function isAllowed(name) { return /\.(pdf|docx)$/i.test(name); }
+
+    function syncInput() {
+      try {
+        var dt = new DataTransfer();
+        files.forEach(function (f) { if (f.ok) dt.items.add(f.file); });
+        input.files = dt.files;
+      } catch (e) { /* older browsers: input keeps last native selection */ }
+    }
+
+    function render() {
+      list.innerHTML = '';
+      var ready = 0, bad = 0, bytes = 0;
+      files.forEach(function (f, i) {
+        var li = document.createElement('li');
+        li.className = 'riq-file' + (f.ok ? '' : ' is-invalid');
+        var ext = (f.file.name.split('.').pop() || '').toLowerCase();
+        li.innerHTML =
+          '<span class="riq-file-ic" aria-hidden="true">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg></span>' +
+          '<span class="riq-file-meta"><strong></strong><small></small></span>' +
+          (f.ok ? '<span class="riq-ext">' + ext + '</span>'
+                 : '<span class="riq-chip riq-chip-miss">Invalid type</span>') +
+          '<button type="button" class="riq-remove" aria-label="Remove file">✕</button>';
+        li.querySelector('strong').textContent = f.file.name;
+        li.querySelector('small').textContent = fmtSize(f.file.size);
+        li.querySelector('.riq-remove').addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          files.splice(i, 1);
+          syncInput();
+          render();
+        });
+        list.appendChild(li);
+        if (f.ok) { ready++; bytes += f.file.size; } else { bad++; }
+      });
+      var has = files.length > 0;
+      empty.style.display = has ? 'none' : '';
+      summary.hidden = !has;
+      if (has) {
+        countEl.textContent = ready + ' file' + (ready === 1 ? '' : 's') + ' ready' + (bad ? ' · ' + bad + ' skipped (invalid type)' : '');
+        sizeEl.textContent = fmtSize(bytes);
+      }
+      zone.classList.toggle('has-files', has);
+      if (has) fileError.hidden = true;
+    }
+
+    function addFiles(fileList) {
+      var added = false;
+      Array.prototype.forEach.call(fileList, function (f) {
+        if (files.length >= MAX_FILES) return;
+        if (!files.some(function (x) { return x.file.name === f.name && x.file.size === f.size; })) {
+          files.push({ file: f, ok: isAllowed(f.name) });
+          added = true;
+        }
+      });
+      if (added) { syncInput(); render(); }
+    }
+
+    input.addEventListener('change', function () {
+      if (input.files && input.files.length) addFiles(input.files);
+      syncInput(); render();
+    });
+    ['dragover', 'dragenter'].forEach(function (ev) {
+      zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add('is-drag'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.remove('is-drag'); });
+    });
+    zone.addEventListener('drop', function (e) {
+      if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+    });
+
+    jd.addEventListener('input', function () {
+      charCount.textContent = jd.value.length;
+      if (jd.value.trim()) jdError.hidden = true;
+    });
+
+    form.addEventListener('submit', function (e) {
+      var okFiles = files.some(function (f) { return f.ok; });
+      var okJd = jd.value.trim().length > 0;
+      fileError.hidden = okFiles;
+      jdError.hidden = okJd;
+      if (!okFiles || !okJd) { e.preventDefault(); return; }
+      btn.disabled = true;
+      btnLabel.textContent = 'Analyzing…';
+      loading.hidden = false;
+    });
+
+    render();
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,18 @@
+# --- bytecode / caches ---
+__pycache__/
+*.py[cod]
+.pytest_cache/
+# --- virtual envs ---
+venv/
+.venv/
+env/
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+# --- uploads / temp (app is in-memory, nothing should be committed) ---
+uploads/
+*.pdf
+*.docx
+!sample_resumes/*.pdf
+!sample_resumes/*.docx

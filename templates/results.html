@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% set active_page = 'results' %}
+
+{% block title %}Screening Results · ResumeIQ{% endblock %}
+{% block page_title %}Screening Results{% endblock %}
+{% block page_sub %}{% if results %}{{ results|length }} resume{{ 's' if results|length != 1 else '' }} processed in this screening.{% else %}No resumes processed yet.{% endif %}{% endblock %}
+
+{% block content %}
+<div id="results-top"></div>
+
+{% if warnings %}
+<div class="riq-alert riq-alert-warn reveal" role="status">
+  <span class="riq-alert-ic" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+  </span>
+  <div>
+    <strong>Some files were skipped:</strong>
+    <ul class="riq-warn-list">
+      {% for w in warnings %}<li>{{ w }}</li>{% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<div class="riq-note-card reveal">
+  <span class="riq-alert-ic" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+  </span>
+  <p>Scores show <strong>textual similarity</strong> (TF-IDF cosine similarity × 100) — how closely each resume's wording overlaps the job description — <strong>not</strong> the probability of hiring success.</p>
+</div>
+
+{% if results %}
+{% set avg_score = (results|sum(attribute='score') / results|length) %}
+
+<!-- ============ SUMMARY ============ -->
+<section class="riq-stats" aria-label="Results summary">
+  <div class="riq-stat reveal">
+    <span class="riq-stat-ic riq-ic-blue" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+    </span>
+    <div><small>Total Resumes Processed</small><strong>{{ summary.processed }}</strong><span>{{ summary.failed }} file{{ '' if summary.failed == 1 else 's' }} skipped</span></div>
+  </div>
+  <div class="riq-stat reveal">
+    <span class="riq-stat-ic riq-ic-teal" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.5 13 17 22l-5-3-5 3 1.5-9"/></svg>
+    </span>
+    <div><small>Highest Match Score</small><strong>{{ '%.2f'|format(summary.top_score) }}%</strong><span>Top-ranked candidate</span></div>
+  </div>
+  <div class="riq-stat reveal">
+    <span class="riq-stat-ic riq-ic-navy" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+    </span>
+    <div><small>Average Match Score</small><strong>{{ '%.2f'|format(avg_score) }}%</strong><span>Across {{ results|length }} candidate{{ '' if results|length == 1 else 's' }}</span></div>
+  </div>
+</section>
+
+{% if job_keywords %}
+<section class="riq-panel reveal" aria-label="Top job description keywords">
+  <div class="riq-panel-head">
+    <div>
+      <h3>Key Job Requirements Detected</h3>
+      <p>Most distinctive terms extracted from the job description</p>
+    </div>
+  </div>
+  <div class="riq-chips">
+    {% for kw in job_keywords[:20] %}<span class="riq-chip riq-chip-jd">{{ kw }}</span>{% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- ============ RANKED TABLE ============ -->
+<section class="riq-panel reveal" id="results" aria-label="Ranked candidates">
+  <div class="riq-panel-head riq-panel-head-split">
+    <div>
+      <h3>Ranked Candidates ({{ results|length }})</h3>
+      <p>Ordered by match score, highest first</p>
+    </div>
+    <div class="riq-head-actions">
+      <a href="{{ url_for('index') }}" class="riq-btn riq-btn-primary riq-btn-sm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+        Screen Another Set
+      </a>
+      <a href="{{ url_for('clear') }}" class="riq-btn riq-btn-ghost riq-btn-sm">Clear</a>
+    </div>
+  </div>
+
+  <div class="riq-table-wrap">
+    <table class="riq-table">
+      <thead>
+        <tr>
+          <th scope="col">Rank</th>
+          <th scope="col">Candidate</th>
+          <th scope="col" class="riq-col-score">Match Score</th>
+          <th scope="col">Matching Keywords</th>
+          <th scope="col">Missing Keywords</th>
+          <th scope="col"><span class="visually-hidden">Details</span></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in results %}
+        <tr class="riq-row">
+          <td>
+            {% if r.rank == 1 %}<span class="riq-rank riq-rank-1" title="Top match">#1</span>
+            {% elif r.rank == 2 %}<span class="riq-rank riq-rank-2" title="2nd best match">#2</span>
+            {% elif r.rank == 3 %}<span class="riq-rank riq-rank-3" title="3rd best match">#3</span>
+            {% else %}<span class="riq-rank">#{{ r.rank }}</span>{% endif %}
+          </td>
+          <td>
+            <span class="riq-candidate" title="{{ r.filename }}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+              {{ r.filename }}
+            </span>
+          </td>
+          <td>
+            <div class="riq-score">
+              <div class="riq-score-bar" role="img" aria-label="Match score {{ '%.2f'|format(r.score) }} percent">
+                <span class="riq-score-fill riq-score-{{ 'hi' if r.score >= 50 else ('mid' if r.score >= 25 else 'lo') }}" style="width: {{ r.score }}%;"></span>
+              </div>
+              <strong>{{ '%.2f'|format(r.score) }}%</strong>
+            </div>
+          </td>
+          <td>
+            {% if r.matched_keywords %}
+            <span class="riq-chips">
+              {% for kw in r.matched_keywords[:8] %}<span class="riq-chip riq-chip-hit">{{ kw }}</span>{% endfor %}
+            </span>
+            {% if r.matched_count > 8 %}<small class="riq-muted">+{{ r.matched_count - 8 }} more</small>{% endif %}
+            {% else %}<span class="riq-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% if r.missing_keywords %}
+            <span class="riq-chips">
+              {% for kw in r.missing_keywords[:8] %}<span class="riq-chip riq-chip-miss">{{ kw }}</span>{% endfor %}
+            </span>
+            {% if r.missing_keywords|length > 8 %}<small class="riq-muted">+{{ r.missing_keywords|length - 8 }} more</small>{% endif %}
+            {% else %}<span class="riq-muted">—</span>{% endif %}
+          </td>
+          <td>
+            <button class="riq-btn riq-btn-outline riq-btn-sm" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#detail{{ r.rank }}" aria-expanded="false" aria-controls="detail{{ r.rank }}">View</button>
+          </td>
+        </tr>
+        <tr class="riq-detail-row">
+          <td colspan="6">
+            <div class="collapse" id="detail{{ r.rank }}">
+              <div class="riq-detail">
+                <div class="riq-detail-meta">
+                  <h4>{{ r.filename }}</h4>
+                  <p class="riq-muted">{{ r.char_count }} characters extracted · Match {{ '%.2f'|format(r.score) }}%</p>
+                  <p><strong>All matching keywords ({{ r.matched_count }}):</strong><br>{{ r.matched_keywords|join(', ') if r.matched_keywords else '—' }}</p>
+                  <p><strong>Missing job keywords:</strong><br>{{ r.missing_keywords|join(', ') if r.missing_keywords else '—' }}</p>
+                </div>
+                <div class="riq-detail-text">
+                  <strong>Extracted text</strong>
+                  <pre>{{ r.preview }}</pre>
+                  <button class="riq-btn riq-btn-ghost riq-btn-sm" type="button" data-bs-toggle="collapse"
+                          data-bs-target="#full{{ r.rank }}" aria-expanded="false" aria-controls="full{{ r.rank }}">Show full text</button>
+                  <div class="collapse" id="full{{ r.rank }}">
+                    <pre class="riq-full">{{ r.text }}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% else %}
+<!-- Empty state (defensive: backend normally redirects instead) -->
+<section class="riq-panel riq-empty-results reveal">
+  <h3>No results to display</h3>
+  <p>Upload resumes and a job description to run a screening.</p>
+  <a href="{{ url_for('index') }}" class="riq-btn riq-btn-primary">Back to Screening</a>
+</section>
+{% endif %}
+
+{% endblock %}

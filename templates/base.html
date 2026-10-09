@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ResumeIQ · Intelligent Resume Screening{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563EB' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z'/%3E%3Cpath d='M14 2v4a2 2 0 0 0 2 2h4'/%3E%3Ccircle cx='11' cy='13' r='2'/%3E%3Cpath d='m12.5 14.5 2 2'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+<div class="riq-app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="riq-sidebar" id="sidebar" aria-label="Primary navigation">
+    <div class="riq-brand">
+      <span class="riq-brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><circle cx="11" cy="13" r="2"/><path d="m12.5 14.5 2 2"/></svg>
+      </span>
+      <span class="riq-brand-text">
+        <strong>ResumeIQ</strong>
+        <small>Intelligent Resume Screening</small>
+      </span>
+    </div>
+
+    <nav class="riq-nav">
+      <p class="riq-nav-label">Workspace</p>
+      <a href="{{ url_for('index') }}" class="riq-nav-item {{ 'is-active' if active_page != 'results' else '' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+        Overview
+      </a>
+      {% if active_page == 'results' %}
+      <a href="#results-top" class="riq-nav-item is-active" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m7 13 3 3 7-7"/></svg>
+        Screening Results
+      </a>
+      <a href="{{ url_for('index') }}#screen" class="riq-nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+        New Screening
+      </a>
+      {% else %}
+      <a href="#screen" class="riq-nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+        Resume Screening
+      </a>
+      <a href="#how" class="riq-nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        How It Works
+      </a>
+      {% endif %}
+    </nav>
+
+    <div class="riq-side-foot">
+      <span class="riq-pulse" aria-hidden="true"></span>
+      <div>
+        <strong>NLP-Powered Matching</strong>
+        <small>TF-IDF · Cosine Similarity · Local</small>
+      </div>
+    </div>
+  </aside>
+  <div class="riq-backdrop" id="backdrop" aria-hidden="true"></div>
+
+  <!-- ============ MAIN ============ -->
+  <div class="riq-main">
+    <header class="riq-topbar">
+      <button class="riq-icon-btn riq-menu-btn" id="navToggle" type="button" aria-label="Toggle navigation" aria-controls="sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+      </button>
+      <div class="riq-page-head">
+        <h1>{% block page_title %}Overview{% endblock %}</h1>
+        <p>{% block page_sub %}Screen resumes against a job description with NLP.{% endblock %}</p>
+      </div>
+      <span class="riq-status"><span class="riq-status-dot" aria-hidden="true"></span>Local Processing</span>
+    </header>
+
+    <main class="riq-content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="riq-flashes" role="status">
+          {% for category, msg in messages %}
+          <div class="riq-alert riq-alert-{{ 'error' if category == 'danger' else ('warn' if category == 'warning' else 'info') }}">
+            <span class="riq-alert-ic" aria-hidden="true">
+              {% if category == 'danger' %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+              {% elif category == 'warning' %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+              {% else %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+              {% endif %}
+            </span>
+            <span>{{ msg }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+
+      <footer class="riq-footer">
+        <p><strong>ResumeIQ</strong> · Resume Screening System Using NLP — college mini project. All files are processed locally in memory; nothing is uploaded to the cloud.</p>
+      </footer>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  (function () {
+    var toggle = document.getElementById('navToggle');
+    var backdrop = document.getElementById('backdrop');
+    if (toggle) toggle.addEventListener('click', function () {
+      document.body.classList.toggle('nav-open');
+    });
+    if (backdrop) backdrop.addEventListener('click', function () {
+      document.body.classList.remove('nav-open');
+    });
+    document.querySelectorAll('.riq-nav-item').forEach(function (a) {
+      a.addEventListener('click', function () {
+        document.body.classList.remove('nav-open');
+      });
+    });
+  })();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
